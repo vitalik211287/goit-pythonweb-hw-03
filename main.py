@@ -50,13 +50,13 @@ class HttpHandler(BaseHTTPRequestHandler):
         data_dict = dict(urllib.parse.parse_qsl(data))
         print(data_dict)
 
-        # with open("storage/data.json", "r", encoding="utf-8") as file:
-        #     messages = json.load(file)
+        with open("storage/data.json", "r", encoding="utf-8") as file:
+            messages = json.load(file)
 
-        # messages[str(datetime.now())] = data_dict
+        messages[str(datetime.now())] = data_dict
 
-        # with open("storage/data.json", "w", encoding="utf-8") as file:
-        #     json.dump(messages, file, ensure_ascii=False, indent=4)
+        with open("storage/data.json", "w", encoding="utf-8") as file:
+            json.dump(messages, file, ensure_ascii=False, indent=4)
 
         self.send_response(302)
         self.send_header("Location", "/")
