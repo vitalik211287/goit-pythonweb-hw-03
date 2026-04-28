@@ -6,13 +6,14 @@ import json
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-
 jinja_env = Environment(
-    loader=FileSystemLoader("."),
-    autoescape=select_autoescape()
+    loader=FileSystemLoader("templates"), autoescape=select_autoescape()
 )
 
+
 class HttpHandler(BaseHTTPRequestHandler):
+
+    BASE_DIR = pathlib.Path(__file__).parent
 
     def do_GET(self):
         pr_url = urllib.parse.urlparse(self.path)
@@ -22,28 +23,29 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         elif pr_url.path == "/message.html":
             self.send_html_file("message.html")
+
         else:
-            if pathlib.Path().joinpath(pr_url.path[1:]).exists():
+            static_path = self.BASE_DIR / pr_url.path[1:]
+
+            if static_path.exists():
                 self.send_static()
             else:
                 self.send_html_file("error.html", 404)
-
-
-    def _render_template(self):
-        template = jinja_env.get_template("index.html")
-        return template.render()
-
 
     def send_html_file(self, filename, status=200):
         self.send_response(status)
         self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
 
-        with open(filename, "rb") as file:
+        file_path = self.BASE_DIR / "templates" / filename
+
+        with open(file_path, "rb") as file:
             self.wfile.write(file.read())
 
     def do_POST(self):
-        content_length = int(self.headers["Content-Length"])  # <--- Gets the size of data
+        content_length = int(
+            self.headers["Content-Length"]
+        )  # <--- Gets the size of data
         post_data = self.rfile.read(content_length)  # <--- Gets the data itself
 
         data = post_data.decode("utf-8")
@@ -61,17 +63,21 @@ class HttpHandler(BaseHTTPRequestHandler):
         self.send_response(302)
         self.send_header("Location", "/")
         self.end_headers()
-        
 
     def send_static(self):
+        file_path = self.BASE_DIR / self.path[1:]
+
         self.send_response(200)
-        mt = mimetypes.guess_type(self.path)
-        if mt:
+        mt = mimetypes.guess_type(file_path)
+
+        if mt[0]:
             self.send_header("Content-type", mt[0])
         else:
-            self.send_header("Content-type", 'text/plain')
+            self.send_header("Content-type", "text/plain")
+
         self.end_headers()
-        with open(f'.{self.path}', 'rb') as file:
+
+        with open(file_path, "rb") as file:
             self.wfile.write(file.read())
 
 
@@ -84,8 +90,6 @@ def run(server_class=HTTPServer, handler_class=HttpHandler, port=3000):
     except KeyboardInterrupt:
         print("Stopping the  server...")
     httpd.server_close()
-
-
 
 
 if __name__ == "__main__":
