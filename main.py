@@ -6,9 +6,9 @@ import json
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-jinja_env = Environment(
-    loader=FileSystemLoader("templates"), autoescape=select_autoescape()
-)
+# jinja_env = Environment(
+#     loader=FileSystemLoader("templates"), autoescape=select_autoescape()
+# )
 
 
 class HttpHandler(BaseHTTPRequestHandler):
@@ -23,6 +23,9 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         elif pr_url.path == "/message.html":
             self.send_html_file("message.html")
+
+        elif pr_url.path == "/read":
+            self.send_read_page()
 
         else:
             static_path = self.BASE_DIR / pr_url.path[1:]
@@ -61,7 +64,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             json.dump(messages, file, ensure_ascii=False, indent=4)
 
         self.send_response(302)
-        self.send_header("Location", "/")
+        self.send_header("Location", "/read")
         self.end_headers()
 
     def send_static(self):
@@ -79,6 +82,19 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         with open(file_path, "rb") as file:
             self.wfile.write(file.read())
+
+    def send_read_page(self):
+        with open("storage/data.json", "r", encoding="utf-8") as file:
+            messages = json.load(file)
+
+        template = jinja_env.get_template("read.html")
+        html = template.render(messages=messages)
+
+        self.send_response(200)
+        self.send_header("Content-type", "text/html; charset=utf-8")
+        self.end_headers()
+
+        self.wfile.write(html.encode("utf-8"))
 
 
 def run(server_class=HTTPServer, handler_class=HttpHandler, port=3000):
